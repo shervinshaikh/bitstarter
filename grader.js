@@ -26,6 +26,9 @@ var program = require('commander');
 var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
+var URL_DEFAULT = "bitstarter-shervin.herokuapp.com";
+var rest = require('restler')
+var sys = require('util');
 
 var assertFileExists = function(infile) {
 	var instr = infile.toString();
@@ -43,6 +46,17 @@ var cheerioHtmlFile = function(htmlfile) {
 var loadChecks = function(checksfile) {
 	return JSON.parse(fs.readFileSync(checksfile));
 };
+
+var getWebpage = function(webpage, checksfile) {
+	rest.get(webpage).on('complete', function(result) {
+		if(result instanceof Error) {
+			console.log('Error: ' + result.message);
+			this.retry(5000);
+		} else {
+			return checkHtmlFile(result, checksfile)
+		}
+	}
+)};
 
 var checkHtmlFile = function(htmlfile, checksfile) {
 	$ = cheerioHtmlFile(htmlfile);
@@ -67,30 +81,17 @@ if(require.main == module){
 		clone(assertFileExists), CHECKSFILE_DEFAULT)
 	.option('-f, --file <html-file>', 'Path to index.html',
 		clone(assertFileExists), HTMLFILE_DEFAULT)
+	.option('-u, --url <url>', 'Path to webpage')
 	.parse(process.argv);
-	var checkJson = checkHtmlFile(program.file, program.checks);
+	var checkJson
+	if(program.url) {
+		checkJson = getWebpage(program.url, program.checks);
+	}
+	else if(program.file){
+		checkJson = checkHtmlFile(program.file, program.checks);
+	}
 	var outJson = JSON.stringify(checkJson, null, 4);
 	console.log(outJson);
 } else {
 	exports.checkHtmlFile = checkHtmlFile;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
